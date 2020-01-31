@@ -29,7 +29,7 @@ export class Camera extends Transform {
 
         // Use orthographic if left/right set, else default to perspective camera
         this.type = left || right ? 'orthographic' : 'perspective';
-        
+
         if (this.type === 'orthographic') this.orthographic();
         else this.perspective();
     }
@@ -69,7 +69,7 @@ export class Camera extends Transform {
         super.updateMatrixWorld();
         this.viewMatrix.inverse(this.worldMatrix);
         this.worldMatrix.getTranslation(this.worldPosition);
-        
+
         // used for sorting
         this.projectionViewMatrix.multiply(this.projectionMatrix, this.viewMatrix);
         return this;
@@ -118,7 +118,7 @@ export class Camera extends Transform {
 
         // If no position attribute, treat as frustumCulled false
         if (!node.geometry.attributes.position) return true;
-        
+
         if (!node.geometry.bounds || node.geometry.bounds.radius === Infinity) node.geometry.computeBoundingSphere();
 
         const center = tempVec3a;

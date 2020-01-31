@@ -53,6 +53,7 @@ export class Camera extends Transform {
         bottom = -1,
         top = 1,
     } = {}) {
+        Object.assign(this, {left, right, bottom, top})
         this.projectionMatrix.fromOrthogonal({left, right, bottom, top, near, far});
         this.type = 'orthographic';
         return this;

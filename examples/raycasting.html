@@ -72,16 +72,17 @@
                 orthographic = e.target.checked;
                 resize();
             }
+            document.addEventListener('wheel', () => resize())
 
             function resize() {
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 const aspect = gl.canvas.width / gl.canvas.height
 
                 if (orthographic) {
-                    const size = 4;
-                    const x = size / 2;
-                    const y = x / aspect;
-                    camera.orthographic({ left:-x, right:x, top:y, bottom:-y });
+                    const size = camera.position.len();
+                    const y = size / 2;
+                    const x = y * aspect;
+                    camera.orthographic({left:-x, right:x, top:y, bottom:-y});
                 } else {
                     camera.perspective({aspect});
                 }
@@ -165,6 +166,8 @@
                 // Update our feedback using this array
                 hits.forEach(mesh => mesh.isHit = true);
             }
+
+            Object.assign(window, { camera })
         }
     </script>
 </body>

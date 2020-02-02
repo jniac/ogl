@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, minimal-ui, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+
+    <title>OGL • Projection and Raycasting</title>
+    <link href="assets/main.css" rel="stylesheet">
+</head>
+<body>
+    <div class="Info">
+        <h3>Projection and Raycasting</h3>
+        <a href="https://community.khronos.org/t/get-direction-from-transformation-matrix-or-quat/65502/2">get-direction-from-transformation-matrix</a>
+        <br><br>
+        <label for="orthographic">orthographic</label>
+        <input type="checkbox" id="orthographic" name="orthographic">
+    </div>
+    <script type="module">
+        import {Renderer, Camera, Transform, Program, Mesh, Vec2, Plane, Sphere, Box, Orbit, Raycast} from '../src/index.mjs';
+
+        const vertex = /* glsl */ `
+            precision highp float;
+            precision highp int;
+
+            attribute vec3 position;
+            attribute vec3 normal;
+
+            uniform mat4 modelViewMatrix;
+            uniform mat4 projectionMatrix;
+            uniform mat3 normalMatrix;
+
+            varying vec3 vNormal;
+
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const fragment = /* glsl */ `
+            precision highp float;
+            precision highp int;
+
+            uniform float uHit;
+
+            varying vec3 vNormal;
+
+            void main() {
+                vec3 normal = normalize(vNormal);
+                float lighting = dot(normal, normalize(vec3(-0.3, 0.8, 0.6)));
+                vec3 color = mix(vec3(0.2, 0.8, 1.0), vec3(1.0, 0.2, 0.8), uHit);
+                gl_FragColor.rgb = color + lighting * 0.1;
+                gl_FragColor.a = 1.0;
+            }
+        `;
+
+        {
+            const renderer = new Renderer({dpr: 2});
+            const gl = renderer.gl;
+            document.body.appendChild(gl.canvas);
+            gl.clearColor(1, 1, 1, 1);
+
+            const camera = new Camera(gl);
+            camera.position.set(2, 1, 5);
+
+            const orbit = new Orbit(camera);
+
+            let orthographic = false;
+            document.querySelector('#orthographic').onchange = e => {
+                orthographic = e.target.checked;
+                resize();
+            }
+            document.addEventListener('wheel', () => resize())
+
+            function resize() {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                const aspect = gl.canvas.width / gl.canvas.height
+
+                if (orthographic) {
+                    const size = camera.position.len();
+                    const y = size / 2;
+                    const x = y * aspect;
+                    camera.orthographic({left:-x, right:x, top:y, bottom:-y});
+                } else {
+                    camera.perspective({aspect});
+                }
+            }
+            window.addEventListener('resize', resize, false);
+            resize();
+
+            const scene = new Transform();
+
+            const planeGeometry = new Plane(gl);
+            const sphereGeometry = new Sphere(gl);
+            const cubeGeometry = new Box(gl);
+
+            const program = new Program(gl, {
+                vertex,
+                fragment,
+                cullFace: null,
+                uniforms: {
+                    uHit: {value: 0},
+                },
+            });
+
+            const cube = new Mesh(gl, {geometry: cubeGeometry, program});
+            // https://stackoverflow.com/questions/13206220/3d-skew-transformation-matrix-along-one-coordinate-axis
+            cube.matrix.set(
+                1,  0,  0,  0,
+                .5, 1,  0,  0,
+                0,  0,  1,  0,
+                0,  0,  0,  1
+            )
+            cube.matrixAutoUpdate = false
+            cube.setParent(scene);
+
+            requestAnimationFrame(update);
+            function update() {
+                requestAnimationFrame(update);
+                orbit.update();
+
+                renderer.render({scene, camera});
+            }
+            Object.assign(window, { camera, cube })
+        }
+    </script>
+</body>
+</html>

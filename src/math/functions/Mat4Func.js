@@ -890,6 +890,44 @@ export function getTranslation(out, mat) {
 }
 
 /**
+ * Returns the direction vector component of a transformation matrix.
+ *  The vector is not normalized. Slightly faster than Vec3.transformDirection.
+ * @param  {vec3} out Vector to receive translation component
+ * @param  {mat4} mat Matrix to be decomposed (input)
+ * @return {vec3} out
+ */
+export function getDirection(out, mat, direction) {
+
+    if (direction === 'right') {
+        out[0] = mat[0];
+        out[1] = mat[1];
+        out[2] = mat[2];
+    } else if (direction === 'left') {
+        out[0] = -mat[0];
+        out[1] = -mat[1];
+        out[2] = -mat[2];
+    } else if (direction === 'up') {
+        out[0] = mat[4];
+        out[1] = mat[5];
+        out[2] = mat[6];
+    } else if (direction === 'down') {
+        out[0] = -mat[4];
+        out[1] = -mat[5];
+        out[2] = -mat[6];
+    } else if (direction === 'back') {
+        out[0] = mat[8];
+        out[1] = mat[9];
+        out[2] = mat[10];
+    } else if (direction === 'up') {
+        out[0] = -mat[8];
+        out[1] = -mat[9];
+        out[2] = -mat[10];
+    }
+
+    return out;
+}
+
+/**
  * Returns the scaling factor component of a transformation
  *  matrix. If a matrix is built with fromRotationTranslationScale
  *  with a normalized Quaternion paramter, the returned vector will be

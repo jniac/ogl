@@ -9,6 +9,78 @@ const tempVec3b = new Vec3();
 const tempVec3c = new Vec3();
 const tempMat4 = new Mat4();
 
+// NOTE:
+// attempt: make a iterator helper to loop over triangles
+// CAUTION: if clone === false: 
+// A, B, C are re-used between loop iteration to save GC pressure
+// dump result into an array will give a useless array filled with the last A, B, C values
+function* trianglesIn(geometry, { clone = false } = {}) {
+
+    const positionData = geometry.attributes.position.data
+    const indexData = geometry.attributes.index && geometry.attributes.index.data
+    const A = new Vec3()
+    const B = new Vec3()
+    const C = new Vec3()
+
+    if (indexData) {
+
+        let i = 0
+        const len = indexData.length
+
+        while (i < len) {
+
+            A.set(
+                positionData[indexData[i] * 3 + 0],
+                positionData[indexData[i] * 3 + 1],
+                positionData[indexData[i] * 3 + 2])
+            i++
+
+            B.set(
+                positionData[indexData[i] * 3 + 0],
+                positionData[indexData[i] * 3 + 1],
+                positionData[indexData[i] * 3 + 2])
+            i++
+
+            C.set(
+                positionData[indexData[i] * 3 + 0],
+                positionData[indexData[i] * 3 + 1],
+                positionData[indexData[i] * 3 + 2])
+            i++
+
+            yield clone
+                ? [A.clone(), B.clone(), C.clone()]
+                : [A, B, C]
+        }
+
+    } else {
+
+        let i = 0
+        const len = positionData.length
+
+        while (i < len) {
+
+            A.set(
+                positionData[i++],
+                positionData[i++],
+                positionData[i++])
+
+            B.set(
+                positionData[i++],
+                positionData[i++],
+                positionData[i++])
+
+            C.set(
+                positionData[i++],
+                positionData[i++],
+                positionData[i++])
+
+            yield clone
+                ? [A.clone(), B.clone(), C.clone()]
+                : [A, B, C]
+        }
+    }
+}
+
 export class Raycast {
     constructor(gl) {
         this.gl = gl;
@@ -138,5 +210,98 @@ export class Raycast {
         if (tmax < 0) return 0;
 
         return tmin >= 0 ? tmin : tmax;
+    }
+
+    intersectMesh(mesh, origin = this.origin, direction = this.direction) {
+
+        if (!mesh.geometry.bounds)
+            mesh.geometry.computeBoundingBox()
+
+        const invWorldMat4 = tempMat4;
+        const localOrigin = tempVec3a;
+        const localDirection = tempVec3b;
+
+        invWorldMat4.inverse(mesh.worldMatrix);
+        localOrigin.copy(this.origin).applyMatrix4(invWorldMat4);
+        localDirection.copy(this.direction).transformDirection(invWorldMat4);
+
+        const ox = localOrigin.x
+        const oy = localOrigin.y
+        const oz = localOrigin.z
+
+        const dx = localDirection.x
+        const dy = localDirection.y
+        const dz = localDirection.z
+
+        if (this.intersectBox(mesh.geometry.bounds, localOrigin, localDirection) > 0) {
+
+            let hit = null
+
+            for (const [[ax, ay, az], [bx, by, bz], [cx, cy, cz]]
+                of trianglesIn(mesh.geometry)) {
+
+                const ux = bx - ax
+                const uy = by - ay
+                const uz = bz - az
+
+                const vx = cx - ax
+                const vy = cy - ay
+                const vz = cz - az
+
+                const wx = ax - ox
+                const wy = ay - oy
+                const wz = az - oz
+
+                // Skip null triangle
+                // NOTE: may use EPSILON here?
+                if ((ux === 0 && uy === 0 && uz === 0) ||
+                    (vx === 0 && vy === 0 && vz === 0))
+                    continue
+
+                // U x V
+                const nx = uy * vz - uz * vy
+                const ny = uz * vx - ux * vz
+                const nz = ux * vy - uy * vx
+
+                // D . (U x V)
+                // back face culling (may be an option)
+                if (nx * dx + ny * dy + nz * dz > 0)
+                    continue
+
+                // Solving:
+                // O + k * D = A + ku * U + kv * V
+                // where O, D are Origin, Direction of the ray,
+                // A the first point of the triangle, and U = AB, V = AC
+                // (ku, kv) are the barycentric coordinates of I
+                // k is the distance from O to I
+                const dvxy = dx * vy - dy * vx
+                const dvxz = dx * vz - dz * vx
+                const duxy = dx * uy - dy * ux
+                const dwxy = dx * wy - dy * wx
+                const ku =
+                    (dvxy * (wx * dz - wz * dx) + dwxy * dvxz) /
+                    (-duxy * dvxz - dvxy * (ux * dz - uz * dx))
+
+                if (ku < 0 || ku > 1)
+                    continue
+
+                const kv =
+                    (dwxy + ku * duxy) / -dvxy
+
+                if (kv < 0 || ku + kv > 1)
+                    continue
+
+                const k =
+                    (wx + ku * ux + kv * vx) / dx
+
+                if (!hit || hit.distance > k)
+                    hit = { hit:true, distance:k, triangle:[A.clone(), B.clone(), C.clone()] }
+            }
+
+            if (hit)
+                return hit
+        }
+
+        return { hit:false }
     }
 }

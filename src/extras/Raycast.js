@@ -11,7 +11,7 @@ const tempMat4 = new Mat4();
 
 // NOTE:
 // attempt: make a iterator helper to loop over triangles
-// CAUTION: if clone === false: 
+// CAUTION: if clone === false:
 // A, B, C are re-used between loop iteration to save GC pressure
 // dump result into an array will give a useless array filled with the last A, B, C values
 function* trianglesIn(geometry, { clone = false } = {}) {
@@ -294,8 +294,16 @@ export class Raycast {
                 const k =
                     (wx + ku * ux + kv * vx) / dx
 
-                if (!hit || hit.distance > k)
-                    hit = { hit:true, distance:k, triangle:[new Vec3(ax, ay, az), new Vec3(bx, by, bz), new Vec3(cx, cy, cz)] }
+                if (!hit || hit.distance > k) {
+
+                    let A = new Vec3(ax, ay, az).applyMatrix4(mesh.worldMatrix)
+                    let B = new Vec3(bx, by, bz).applyMatrix4(mesh.worldMatrix)
+                    let C = new Vec3(cx, cy, cz).applyMatrix4(mesh.worldMatrix)
+                    let point = new Vec3(ox + k * dx, oy + k * dy, oz + k * dz).applyMatrix4(mesh.worldMatrix)
+                    let normal = new Vec3(nx, ny, nz).transformDirection(mesh.worldMatrix).normalize()
+
+                    hit = { hit:true, distance:k, point, normal, triangle:[A, B, C] }
+                }
             }
 
             if (hit)

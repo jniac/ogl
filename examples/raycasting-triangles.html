@@ -322,10 +322,6 @@
                         program.uniforms.hover.value = hit.hit ? 1 : 0
 
                         if (hit.hit) {
-                            let [A, B, C] = hit.triangle
-                            A.applyMatrix4(mesh.matrix)
-                            B.applyMatrix4(mesh.matrix)
-                            C.applyMatrix4(mesh.matrix)
                             triangle.geometry.attributes.position.data.set(hit.triangle[0], 0)
                             triangle.geometry.attributes.position.data.set(hit.triangle[1], 3)
                             triangle.geometry.attributes.position.data.set(hit.triangle[2], 6)

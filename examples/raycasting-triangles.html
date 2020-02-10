@@ -10,7 +10,12 @@
     <link href="assets/main.css" rel="stylesheet">
 </head>
 <body>
-    <div class="Info">Raycast mesh WIP</div>
+    <div class="Info">
+        Raycast mesh WIP<br>
+        <br>
+        <label for="orthographic">fox geometry</label>
+        <input type="checkbox" id="fox-geometry" name="fox-geometry">
+    </div>
     <script type="module">
         import {
             Renderer,
@@ -181,6 +186,11 @@
 
         function* enumerate(n) { let i = 0; while(i < n) yield i++; }
 
+        const search = new URLSearchParams(window.location.search)
+        document.querySelector('input#fox-geometry').checked = search.get('fox') == 'true'
+        document.querySelector('input#fox-geometry').onchange = e =>
+            window.open(`raycasting-triangles.html?fox=${e.target.checked}`, '_self')
+
         function getTriangleMesh(gl) {
 
             let position = [
@@ -285,9 +295,6 @@
             });
 
             const wireframeProgram = getWireframeProgram(gl, renderer)
-
-            const search = new URLSearchParams(window.location.search)
-            console.log(search.get('lol'))
 
             let random = new kit.Random(345687);
             async function loadModel() {

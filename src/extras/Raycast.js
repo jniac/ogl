@@ -295,7 +295,7 @@ export class Raycast {
                     (wx + ku * ux + kv * vx) / dx
 
                 if (!hit || hit.distance > k)
-                    hit = { hit:true, distance:k, triangle:[A.clone(), B.clone(), C.clone()] }
+                    hit = { hit:true, distance:k, triangle:[new Vec3(ax, ay, az), new Vec3(bx, by, bz), new Vec3(cx, cy, cz)] }
             }
 
             if (hit)
